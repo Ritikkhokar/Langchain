@@ -7,3 +7,4 @@ transformers==5.9.0
 huggingface-hub==1.16.4
 torch>=2.0.0
 tokenizers==0.22.2
+grandalf
