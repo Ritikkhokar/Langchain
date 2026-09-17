@@ -18,7 +18,7 @@ model = ChatAnthropic(model="claude-haiku-4-5")
 str_parser = StrOutputParser()
 
 class EvaluationSchema(BaseModel):
-    feedback: str = Field(description="Detailed feedback for the essay")
+    feedback: str = Field(description="Feedback for the essay in 2-3 sentences")
     score: int = Field(description="Score out of 10", ge=0, le=10)
 
 structured_model = model.with_structured_output(EvaluationSchema)
@@ -41,7 +41,7 @@ graph = StateGraph(UPSCState)
 
 
 def language_feedback(state: UPSCState):
-    prompt = f"Evaluate the language quality of the following UPSC essay. Check grammar, vocabulary, sentence structure and tone. Give detailed feedback and a score out of 10. Essay: {state['essay']}"
+    prompt = f"Evaluate the language quality of the following UPSC essay. Check grammar, vocabulary, sentence structure and tone. Give feedback in 2-3 sentences and a score out of 10. Essay: {state['essay']}"
 
     output = structured_model.invoke(prompt)
 
@@ -51,7 +51,7 @@ def language_feedback(state: UPSCState):
     }
 
 def content_feedback(state: UPSCState):
-    prompt = f"Evaluate the content quality of the following UPSC essay. Check depth of analysis, relevance to the topic, use of facts and examples, and balance of arguments. Give detailed feedback and a score out of 10. Essay: {state['essay']}"
+    prompt = f"Evaluate the content quality of the following UPSC essay. Check depth of analysis, relevance to the topic, use of facts and examples, and balance of arguments. Give feedback in 2-3 sentences and a score out of 10. Essay: {state['essay']}"
 
     output = structured_model.invoke(prompt)
 
@@ -61,7 +61,7 @@ def content_feedback(state: UPSCState):
     }
 
 def clarity_feedback(state: UPSCState):
-    prompt = f"Evaluate the clarity of thought of the following UPSC essay. Check logical flow, structure (introduction, body, conclusion), coherence between paragraphs and how clearly the main idea is expressed. Give detailed feedback and a score out of 10. Essay: {state['essay']}"
+    prompt = f"Evaluate the clarity of thought of the following UPSC essay. Check logical flow, structure (introduction, body, conclusion), coherence between paragraphs and how clearly the main idea is expressed. Give feedback in 2-3 sentences and a score out of 10. Essay: {state['essay']}"
 
     output = structured_model.invoke(prompt)
 
@@ -72,7 +72,7 @@ def clarity_feedback(state: UPSCState):
 
 def overall_feedback(state: UPSCState):
     average_score = sum(state["individualSectionScores"]) / len(state["individualSectionScores"])
-    prompt = f"Based on the following feedback and scores, provide an overall evaluation of the UPSC essay. Essay: {state['essay']}. Language Feedback: {state['languageFeedback']}. Content Feedback: {state['contentFeedback']}. Clarity Feedback: {state['clarityFeedback']}. Average Score: {average_score:.2f}/10. Provide detailed overall feedback."
+    prompt = f"Based on the following feedback and scores, provide an overall evaluation of the UPSC essay. Essay: {state['essay']}. Language Feedback: {state['languageFeedback']}. Content Feedback: {state['contentFeedback']}. Clarity Feedback: {state['clarityFeedback']}. Average Score: {average_score:.2f}/10. Give overall feedback in 2-3 sentences in plain text, without headings or tables. Do not add statistics that are not in the essay."
 
     output = (model | str_parser).invoke(prompt)
 
@@ -97,3 +97,21 @@ graph.add_edge("clarityFeedback", "overallFeedback")
 graph.add_edge("overallFeedback", END)
 
 # ── Run ─────────────────────────────────────────────────────────
+workflow = graph.compile()
+
+essay = """Digital India: Bridging the Gap or Widening It?
+
+The Digital India programme, launched in 2015, aims to transform India into a digitally empowered society. Initiatives such as UPI, Aadhaar and BharatNet have brought banking, identity and internet access to millions of citizens. Today, a street vendor can accept digital payments, and a farmer can check crop prices on a mobile phone.
+
+However, the digital divide remains a serious concern. Rural areas still face poor connectivity, and many women and elderly citizens lack digital literacy. During the COVID-19 pandemic, students without smartphones or internet access fell behind in online education. Rising cyber fraud also threatens trust in digital systems.
+
+To make Digital India truly inclusive, the government must invest in rural infrastructure, promote digital literacy in local languages and strengthen data protection laws. Technology should be a bridge that connects every citizen, not a wall that separates the connected from the unconnected."""
+
+result = workflow.invoke({"essay": essay})
+
+print("Language Feedback:\n", result["languageFeedback"], "\n")
+print("Content Feedback:\n", result["contentFeedback"], "\n")
+print("Clarity Feedback:\n", result["clarityFeedback"], "\n")
+print("Individual Scores:", result["individualSectionScores"])
+print("Average Score:", round(result["averageScore"], 2), "\n")
+print("Overall Feedback:\n", result["overallFeedback"])
