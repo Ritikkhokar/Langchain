@@ -70,16 +70,30 @@ def clarity_feedback(state: UPSCState):
         "individualSectionScores": [output.score],
     }
 
+def overall_feedback(state: UPSCState):
+    average_score = sum(state["individualSectionScores"]) / len(state["individualSectionScores"])
+    prompt = f"Based on the following feedback and scores, provide an overall evaluation of the UPSC essay. Essay: {state['essay']}. Language Feedback: {state['languageFeedback']}. Content Feedback: {state['contentFeedback']}. Clarity Feedback: {state['clarityFeedback']}. Average Score: {average_score:.2f}/10. Provide detailed overall feedback."
+
+    output = (model | str_parser).invoke(prompt)
+
+    return {
+        "overallFeedback": output,
+        "averageScore": average_score,
+    }
 
 graph.add_node("languageFeedback", language_feedback)
 graph.add_node("contentFeedback", content_feedback)
 graph.add_node("clarityFeedback", clarity_feedback)
+graph.add_node("overallFeedback", overall_feedback)
 
 
 # ── Graph ───────────────────────────────────────────────────────
 graph.add_edge(START, "languageFeedback")
 graph.add_edge(START, "contentFeedback")
 graph.add_edge(START, "clarityFeedback")
-
+graph.add_edge("languageFeedback", "overallFeedback")
+graph.add_edge("contentFeedback", "overallFeedback")
+graph.add_edge("clarityFeedback", "overallFeedback")
+graph.add_edge("overallFeedback", END)
 
 # ── Run ─────────────────────────────────────────────────────────
