@@ -47,7 +47,7 @@ def runDiagnosis(state: ReviewState) -> ReviewState:
     return {"diagnosis": output.model_dump()}
 
 def positiveResponse(state: ReviewState) -> ReviewState:
-    prompt = f"Write a warm, appreciative response thanking the customer for the following positive review. Review: {state['review']}"
+    prompt = f"Write a warm, appreciative response thanking the customer for the following positive review. Keep it short, max 2 lines. Review: {state['review']}"
 
     output = (model | str_parser).invoke(prompt)
 
@@ -59,7 +59,7 @@ def negativeResponse(state: ReviewState) -> ReviewState:
         f"Write an empathetic customer support response to the following negative review. "
         f"The issue type is '{diagnosis['issue_type']}', the customer's tone is '{diagnosis['tone']}' "
         f"and the urgency is '{diagnosis['urgency']}'. Address the issue directly and match the response "
-        f"to the urgency level. Review: {state['review']}"
+        f"to the urgency level. Keep it short, max 2 lines, plain text, no subject line or signature. Review: {state['review']}"
     )
 
     output = (model | str_parser).invoke(prompt)
@@ -88,3 +88,12 @@ graph.add_edge('negative_response', END)
 
 
 # ── Run ─────────────────────────────────────────────────────────
+workflow = graph.compile()
+
+review = """I ordered a wireless keyboard last week and it stopped connecting to my laptop after just three days. I tried re-pairing it multiple times and even reinstalled the drivers, but nothing worked. I reached out to support two days ago and haven't heard back yet, which is honestly frustrating for a product that cost this much. I need a replacement or a refund as soon as possible."""
+
+result = workflow.invoke({"review": review})
+
+print("Sentiment:", result["sentiment"])
+print("Diagnosis:", result.get("diagnosis"))
+print("Response:\n", result["response"])
