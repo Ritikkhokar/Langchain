@@ -16,6 +16,13 @@ class SentimentSchema(BaseModel):
 
 sentiment_model = model.with_structured_output(SentimentSchema)
 
+class DiagnosisSchema(BaseModel):
+    issue_type: Literal["billing", "performance", "bug", "support", "other"] = Field(description="The category of issue mentioned in the review")
+    tone: Literal["angry", "frustrated", "disappointed", "calm"] = Field(description="The emotional tone expressed by the user")
+    urgency: Literal["low", "medium", "high"] = Field(description="How urgent or critical the issue appears to be")
+
+diagnosis_model = model.with_structured_output(DiagnosisSchema)
+
 # ── State ───────────────────────────────────────────────────────
 class ReviewState(TypedDict):
     review: str
@@ -31,6 +38,13 @@ def findSentiment(state: ReviewState):
     output = sentiment_model.invoke(prompt)
 
     return {"sentiment": output.sentiment}
+
+def runDiagnosis(state: ReviewState):
+    prompt = f"Diagnose the following negative review. Identify the issue type, the tone and the urgency. Review: {state['review']}"
+
+    output = diagnosis_model.invoke(prompt)
+
+    return {"diagnosis": output.model_dump()}
 
 # ── Graph ───────────────────────────────────────────────────────
 graph = StateGraph(ReviewState)
