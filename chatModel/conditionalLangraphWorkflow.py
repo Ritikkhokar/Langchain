@@ -32,19 +32,45 @@ class ReviewState(TypedDict):
 
 
 # ── Nodes ───────────────────────────────────────────────────────
-def findSentiment(state: ReviewState):
+def findSentiment(state: ReviewState) -> ReviewState:
     prompt = f"Analyze the sentiment of the following review. Is it positive or negative? Review: {state['review']}"
 
     output = sentiment_model.invoke(prompt)
 
     return {"sentiment": output.sentiment}
 
-def runDiagnosis(state: ReviewState):
+def runDiagnosis(state: ReviewState) -> ReviewState:
     prompt = f"Diagnose the following negative review. Identify the issue type, the tone and the urgency. Review: {state['review']}"
 
     output = diagnosis_model.invoke(prompt)
 
     return {"diagnosis": output.model_dump()}
+
+def positiveResponse(state: ReviewState) -> ReviewState:
+    prompt = f"Write a warm, appreciative response thanking the customer for the following positive review. Review: {state['review']}"
+
+    output = (model | str_parser).invoke(prompt)
+
+    return {"response": output}
+
+def negativeResponse(state: ReviewState) -> ReviewState:
+    diagnosis = state["diagnosis"]
+    prompt = (
+        f"Write an empathetic customer support response to the following negative review. "
+        f"The issue type is '{diagnosis['issue_type']}', the customer's tone is '{diagnosis['tone']}' "
+        f"and the urgency is '{diagnosis['urgency']}'. Address the issue directly and match the response "
+        f"to the urgency level. Review: {state['review']}"
+    )
+
+    output = (model | str_parser).invoke(prompt)
+
+    return {"response": output}
+
+def checkSentiment(state: ReviewState) -> Literal["positive_response", "run_diagnosis"]:
+    if state["sentiment"] == "positive":
+        return "positive_response"
+    else:
+        return "run_diagnosis"
 
 # ── Graph ───────────────────────────────────────────────────────
 graph = StateGraph(ReviewState)
