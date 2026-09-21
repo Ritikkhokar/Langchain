@@ -79,6 +79,12 @@ graph.add_node('run_diagnosis', runDiagnosis)
 graph.add_node('negative_response', negativeResponse)
 graph.add_node('positive_response', positiveResponse)
 
+graph.add_edge(START, 'find_sentiment')
+graph.add_conditional_edges('find_sentiment', checkSentiment)
+graph.add_edge('run_diagnosis', 'negative_response')
+graph.add_edge('positive_response', END)
+graph.add_edge('negative_response', END)
+
 
 
 # ── Run ─────────────────────────────────────────────────────────
