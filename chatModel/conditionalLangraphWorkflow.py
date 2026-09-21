@@ -11,6 +11,11 @@ load_dotenv()
 model = ChatAnthropic(model="claude-haiku-4-5")
 str_parser = StrOutputParser()
 
+class SentimentSchema(BaseModel):
+    sentiment: Literal["positive", "negative"] = Field(description="Sentiment of the review, either positive or negative")
+
+sentiment_model = model.with_structured_output(SentimentSchema)
+
 # ── State ───────────────────────────────────────────────────────
 class ReviewState(TypedDict):
     review: str
@@ -23,9 +28,9 @@ class ReviewState(TypedDict):
 def findSentiment(state: ReviewState):
     prompt = f"Analyze the sentiment of the following review. Is it positive or negative? Review: {state['review']}"
 
-    output = model.invoke(prompt, output_parser=str_parser)
+    output = sentiment_model.invoke(prompt)
 
-    return {"sentiment": output.strip().lower()}
+    return {"sentiment": output.sentiment}
 
 # ── Graph ───────────────────────────────────────────────────────
 graph = StateGraph(ReviewState)
